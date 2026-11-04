@@ -1,18 +1,58 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Stack, router } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { useEffect } from 'react';
 
-SplashScreen.preventAutoHideAsync();
+import { auth, db } from '@/services/firebaseConfig';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+
+      if (!user) {
+        router.replace('/(auth)/login');
+        return;
+      }
+
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnapshot = await getDoc(userRef);
+
+        if (!isMounted) return;
+
+        const role = userSnapshot.exists()
+          ? userSnapshot.data().role
+          : 'citizen';
+
+        if (role === 'admin') {
+          router.replace('/(admin)');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } catch (error) {
+        console.error('Unable to verify user role:', error);
+
+        if (isMounted) {
+          router.replace('/(tabs)');
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(admin)" />
+    </Stack>
   );
 }
