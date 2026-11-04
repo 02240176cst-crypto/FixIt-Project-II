@@ -1,9 +1,8 @@
-
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -56,6 +55,9 @@ const priorities = [
 ] as const;
 
 export default function ReportScreen() {
+  // Prevent duplicate submissions if the button is tapped repeatedly.
+  const submittingRef = useRef(false);
+
   const [category, setCategory] = useState('');
   const [priority, setPriority] =
     useState<IssuePriority>('Medium');
@@ -145,6 +147,8 @@ export default function ReportScreen() {
 
   // Submit report
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+
     if (!category) {
       Alert.alert(
         'Category required',
@@ -189,6 +193,7 @@ export default function ReportScreen() {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
 
     try {
@@ -203,10 +208,10 @@ export default function ReportScreen() {
       }
 
       await submitReport({
-        category,
-        title,
-        description,
-        location,
+        category: category.trim(),
+        title: title.trim(),
+        description: description.trim(),
+        location: location.trim(),
         priority,
         imageUrl,
         latitude: selectedLocation.latitude,
@@ -240,6 +245,7 @@ export default function ReportScreen() {
           'Something went wrong. Please try again.'
       );
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -415,8 +421,7 @@ export default function ReportScreen() {
             community issue.
           </Text>
         </View>
-
-        {/* Issue details */}
+                {/* Issue details */}
         <View style={styles.card}>
           <View style={styles.sectionHeading}>
             <Text style={styles.sectionNumber}>03</Text>
@@ -670,7 +675,6 @@ export default function ReportScreen() {
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
