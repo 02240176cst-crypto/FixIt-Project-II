@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "FixIt",
@@ -36,7 +35,8 @@
           "imageWidth": 300,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
